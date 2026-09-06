@@ -115,6 +115,7 @@
   }
   .row{ display:flex; gap:8px; }
   .tile{
+    position:relative;
     width:var(--tile-size, 52px);
     height:var(--tile-size, 52px);
     border:2px solid var(--panel-edge);
@@ -129,6 +130,18 @@
     background:var(--panel);
     text-transform:uppercase;
     transition:transform 0.15s ease, background 0.3s ease, border-color 0.3s ease;
+  }
+  .tile.dup::after{
+    content:'+';
+    position:absolute;
+    top:1px;
+    right:4px;
+    font-family:var(--sans);
+    font-size:calc(var(--tile-size, 52px) * 0.24);
+    font-weight:700;
+    line-height:1;
+    color:#F2F6F0;
+    opacity:0.85;
   }
   .tile.filled{ border-color:#454B5C; }
   .tile.correct{ background:var(--correct); border-color:var(--correct); color:#F2F6F0; }
@@ -440,13 +453,30 @@
     return result;
   }
 
+  function computeDupFlags(guess, result, target){
+    const totalCounts = {};
+    for(const ch of target){ totalCounts[ch] = (totalCounts[ch] || 0) + 1; }
+    const correctCounts = {};
+    guess.split("").forEach((ch, i) => {
+      if(result[i] === "correct"){ correctCounts[ch] = (correctCounts[ch] || 0) + 1; }
+    });
+    return guess.split("").map((ch, i) => {
+      if(result[i] !== "correct") return false;
+      const total = totalCounts[ch] || 0;
+      const foundAll = (correctCounts[ch] || 0) >= total;
+      return total > 1 && !foundAll;
+    });
+  }
+
   function paintRow(rowIndex, guess, result){
     const {tiles} = rowEl[rowIndex];
+    const dupFlags = computeDupFlags(guess, result, target);
     tiles.forEach((tile, i) => {
       tile.textContent = guess[i];
       setTimeout(() => {
         tile.classList.add("flip");
         tile.classList.add(result[i]);
+        if(dupFlags[i]) tile.classList.add("dup");
       }, i * 90);
     });
   }
